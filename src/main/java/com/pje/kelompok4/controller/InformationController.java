@@ -35,152 +35,110 @@ public class InformationController {
 
     @PostMapping("/create")
 	public ResponseEntity<?> createInfo(@Valid @RequestBody InformationReq iReq) {
+		int code   = 201;
+		String msg = "informasi baru berhasil dibuat";
+
 		try {
 			if (iRepo.existsByName(iReq.getName())) {
-				ResponseDto<?> responseData = new ResponseDto<>(
-					400,
-					"failed",
-					"nama info ini sudah dipakai!"
-				);
-
-				return ResponseEntity
-					.status(HttpStatus.BAD_REQUEST)
-					.body(responseData);
+				code = 400;
+				msg  = "nama info ini sudah dipakai"; 
 			}
-	
-			Information information = new Information();
-			Date date      = new Date();
-			String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
-
-            information.setName(iReq.getName());
-            information.setDescription(iReq.getDescription());
-			information.setCreatedAt(strDate);
-			iRepo.save(information);
-	
-			ResponseDto<?> responseData = new ResponseDto<>(
-				201,
-				"success",
-				"informasi baru berhasil dibuat!"
-			);
-
-			return ResponseEntity
-				.status(HttpStatus.CREATED)
-				.body(responseData);
+			else {
+				Information information = new Information();
+				Date date      = new Date();
+				String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
+				
+				information.setName(iReq.getName());
+				information.setDescription(iReq.getDescription());
+				information.setCreatedAt(strDate);
+				iRepo.save(information);
+			}
         } 
         catch (Exception e) {
-            ResponseDto<?> responseData = new ResponseDto<>(
-				500,
-				"failed",
-				e.getMessage()
-			);
-
-            return ResponseEntity
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.body(responseData);
+			code = 500;
+			msg  = e.getMessage();
         }
+
+		return ResponseEntity
+			.status(code)
+			.body(new ResponseDto<>(
+				code,
+				(code < 300) ? "success" : "failed",
+				msg
+			));
 	}
 
     @PutMapping("/update")
 	public ResponseEntity<?> updateInfo(@Valid @RequestBody InformationUpdateReq iUpdateReq) {
+		int code   = 201;
+		String msg = "info dengan id {"+iUpdateReq.getId()+"} berihasil diedit";
+
 		try {
 			// Check id is exist
 			if (iRepo.existsById(iUpdateReq.getId()) == false) {
-				ResponseDto<?> responseData = new ResponseDto<>(
-					400,
-					"failed",
-					"info dengan id {"+iUpdateReq.getId()+"} tidak ditemukan!"
-				);
-
-				return ResponseEntity
-					.status(HttpStatus.BAD_REQUEST)
-					.body(responseData);
+				code = 400;
+				msg  = "info dengan id {"+iUpdateReq.getId()+"} tidak ditemukan"; 
 			}
-
-			// Check name is exist
-			Information result = iRepo.validateName(iUpdateReq.getName(), iUpdateReq.getId());
-
-			if (Objects.isNull(result) == false) {
-				ResponseDto<?> responseData = new ResponseDto<>(
-					400,
-					"failed",
-					"nama info ini sudah dipakai!"
-				);
-
-				return ResponseEntity
-					.status(HttpStatus.BAD_REQUEST)
-					.body(responseData);
-			}
-	
-			Information information = iRepo.findInformationById(iUpdateReq.getId());
-			Date date      = new Date();
-			String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
-			
-            information.setName(iUpdateReq.getName());
-            information.setDescription(iUpdateReq.getDescription());
-			information.setUpdatedAt(strDate);
-			iRepo.save(information);
+			else {
+				// Check name is exist
+				Information result = iRepo.validateName(iUpdateReq.getName(), iUpdateReq.getId());
 				
-			ResponseDto<?> responseData = new ResponseDto<>(
-				201,
-				"success",
-                "info dengan id {"+iUpdateReq.getId()+"} berihasil diedit!"
-			);
-
-			return ResponseEntity
-				.status(HttpStatus.CREATED)
-				.body(responseData);
+				if (Objects.isNull(result) == false) {
+					code = 400;
+					msg  = "nama info ini sudah dipakai"; 
+				}
+				else {
+					Information information = iRepo.findInformationById(iUpdateReq.getId());
+					Date date      = new Date();
+					String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
+					
+					information.setName(iUpdateReq.getName());
+					information.setDescription(iUpdateReq.getDescription());
+					information.setUpdatedAt(strDate);
+					iRepo.save(information);
+				}
+			}
         } 
         catch (Exception e) {
-            ResponseDto<?> responseData = new ResponseDto<>(
-				500,
-				"failed",
-				e.getMessage()
-			);
-
-            return ResponseEntity
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.body(responseData);
+			code = 500;
+			msg  = e.getMessage();
         }
+
+		return ResponseEntity
+			.status(code)
+			.body(new ResponseDto<>(
+				code,
+				(code < 300) ? "success" : "failed",
+				msg
+			));
 	}
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteInfo(@PathVariable Long id) {
+		int code   = 201;
+		String msg = "info dengan id {"+id+"} berhasil dihapus";
+
         try {
             if (iRepo.existsById(id) == false) {
-				ResponseDto<?> responseData = new ResponseDto<>(
-					400,
-					"failed",
-					"info dengan id {"+id+"} tidak ditemukan!"
-				);
-
-				return ResponseEntity
-					.status(HttpStatus.BAD_REQUEST)
-					.body(responseData);
+				code = 400;
+				msg  = "info dengan id {"+id+"} tidak ditemukan";
 			}
-
-            iRepo.deleteById(id);
-            
-            ResponseDto<?> responseData = new ResponseDto<>(
-				200,
-				"success",
-				"info dengan id {"+id+"} berhasil dihapus!"
-			);
-
-            return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(responseData);
+			else {
+				iRepo.deleteById(id);
+			}
         } 
         catch (Exception e) {
-            ResponseDto<?> responseData = new ResponseDto<>(
-				500,
-				"failed",
-				e.getMessage()
-			);
-
-            return ResponseEntity
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.body(responseData);
+			code = 500;
+			msg  = e.getMessage();
         }
+
+		return ResponseEntity
+			.status(code)
+			.body(new ResponseDto<>(
+				code,
+				(code < 300) ? "success" : "failed",
+				msg
+			));
     }
 
     @GetMapping
@@ -189,17 +147,7 @@ public class InformationController {
 			ResponseDto<?> responseData;
 			int status;
 
-			if (Objects.isNull(name)) {
-				status = 200;
-				Iterable<InformationRes> result = iRepo.getAllInformations();
-			
-				responseData = new ResponseDto<>(
-					status,
-					"success",
-					result
-				);
-			}
-			else {
+			if (Objects.isNull(name) == false) {
 				Information result = iRepo.findInformationByName(name);
 				status = (Objects.isNull(result)) ? 404 : 200;
 				
@@ -207,6 +155,16 @@ public class InformationController {
 					status,
 					(Objects.isNull(result)) ? "failed" : "success",
 					(Objects.isNull(result)) ? "" : result
+				);
+			}
+			else {
+				status = 200;
+				Iterable<InformationRes> result = iRepo.getAllInformations();
+			
+				responseData = new ResponseDto<>(
+					status,
+					"success",
+					result
 				);
 			}
 

@@ -93,11 +93,10 @@ public class UserController {
 	@PostMapping("/create")
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<?> createUser(@Valid @RequestBody UserCreateReq uCreateReq) {
+		int code   = 201;
+		String msg = "akun berhasil dibuat";
+		
 		try {
-			ResponseDto<?> responseData;
-			int code   = 201;
-			String msg = "akun berhasil dibuat";
-
 			if (userRepository.existsByNik(uCreateReq.getNik())) {
 				code = 400;
 				msg  = "nik is already taken";
@@ -106,21 +105,20 @@ public class UserController {
 				code = 400;
 				msg  = "username is already taken";
 			}
+			else {
+				String role;
+				switch (uCreateReq.getRole()) {
+					case "admin":
+						role = "ROLE_ADMIN";
+						break;
+					default:
+						role = "ROLE_PEGAWAI";
+				}
 
-			String role;
-			switch (uCreateReq.getRole()) {
-				case "admin":
-					role = "ROLE_ADMIN";
-					break;
-				default:
-					role = "ROLE_PEGAWAI";
-			}
-			
-			if (code < 300) {
 				User user 	   = new User();
 				Date date      = new Date();
 				String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
-
+	
 				user.setId(UUID.randomUUID().toString().replaceAll("-", ""));
 				user.setNik(uCreateReq.getNik());
 				user.setUsername(uCreateReq.getUsername());
@@ -129,37 +127,27 @@ public class UserController {
 				user.setCreatedAt(strDate);
 				userRepository.save(user);
 			}
-	
-			responseData = new ResponseDto<>(
+        } 
+        catch (Exception e) {
+			code = 500;
+			msg  = e.getMessage();
+        }
+
+		return ResponseEntity
+			.status(code)
+			.body(new ResponseDto<>(
 				code,
 				(code < 300) ? "success" : "failed",
 				msg
-			);
-
-			return ResponseEntity
-				.status(code)
-				.body(responseData);
-        } 
-        catch (Exception e) {
-            ResponseDto<?> responseData = new ResponseDto<>(
-				500,
-				"failed",
-				e.getMessage()
-			);
-
-            return ResponseEntity
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.body(responseData);
-        }
+			));
 	}
 
 	@PutMapping("/update")
 	public ResponseEntity<?> updateUser(@Valid @RequestBody UserUpdateReq userUpdateReq,HttpServletRequest request) {
+		int code   = 201;
+		String msg = "akun berhasil diedit";
+		
 		try {
-			ResponseDto<?> responseData;
-			int code   = 201;
-			String msg = "akun berhasil diedit";
-
 			String headerAuth = request.getHeader("token");
 			String uniqueId   = jwtUtils.getUniqueIdromJwtToken(
 				headerAuth.substring(4, headerAuth.length())
@@ -192,64 +180,53 @@ public class UserController {
 						code = 400;
 						msg  = "nik ini sudah dipakai";
 					}
+					else {
+						String role;
+						switch (userUpdateReq.getRole()) {
+							case "admin":
+								role = "ROLE_ADMIN";
+								break;
+							default:
+								role = "ROLE_PEGAWAI";
+						}
+			
+						User user = userRepository.findById(userUpdateReq.getId());
+						Date date      = new Date();
+						String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
+						
+						user.setNik(userUpdateReq.getNik());
+						user.setUsername(userUpdateReq.getUsername());
+						if (!Objects.isNull(userUpdateReq.getPassword())) {
+							user.setPassword(encoder.encode(userUpdateReq.getPassword()));
+						}
+						user.setRole(role);
+						user.setUpdatedAt(strDate);
+						userRepository.save(user);
+					}
 				}
 			}
-
-			String role;
-			switch (userUpdateReq.getRole()) {
-				case "admin":
-					role = "ROLE_ADMIN";
-					break;
-				default:
-					role = "ROLE_PEGAWAI";
-			}
-
-			if (code < 300) {
-				User user = userRepository.findById(userUpdateReq.getId());
-				Date date      = new Date();
-				String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
-				
-				user.setNik(userUpdateReq.getNik());
-				user.setUsername(userUpdateReq.getUsername());
-				if (!Objects.isNull(userUpdateReq.getPassword())) {
-					user.setPassword(encoder.encode(userUpdateReq.getPassword()));
-				}
-				user.setRole(role);
-				user.setUpdatedAt(strDate);
-				userRepository.save(user);
-			}
-				
-			responseData = new ResponseDto<>(
-				code,
-				(code < 300) ? "success" : "failed",
-                msg
-			);
-
-			return ResponseEntity
-				.status(code)
-				.body(responseData);
         } 
         catch (Exception e) {
-            ResponseDto<?> responseData = new ResponseDto<>(
-				500,
-				"failed",
-				e.getMessage()
-			);
-
-            return ResponseEntity
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.body(responseData);
+			code = 500;
+			msg  = e.getMessage();
         }
+
+		return ResponseEntity
+			.status(code)
+			.body(new ResponseDto<>(
+				code,
+				(code < 300) ? "success" : "failed",
+				msg
+			));
 	}
 
 	@PutMapping("/update_profile")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('PEGAWAI')")
 	public ResponseEntity<?> updateProfile(@Valid @RequestBody UserProfileReq uProfileReq,HttpServletRequest request) {
+		int code   = 201;
+		String msg = "profile berhasil diedit";
+		
 		try {
-			ResponseDto<?> responseData;
-			int code   = 201;
-			String msg = "profile berhasil diedit";
-			
 			String headerAuth = request.getHeader("token");
 			String uniqueId   = jwtUtils.getUniqueIdromJwtToken(
 				headerAuth.substring(4, headerAuth.length())
@@ -270,84 +247,62 @@ public class UserController {
 					code = 400;
 					msg  = "username is already taken";
 				}
-			}
-
-			if(code < 300) {
-				User user      = userRepository.findById(uniqueId);
-				Date date      = new Date();
-				String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
-				
-				user.setNik(uProfileReq.getNik());
-				user.setUsername(uProfileReq.getUsername());
-				if (!Objects.isNull(uProfileReq.getPassword())) {
-					user.setPassword(encoder.encode(uProfileReq.getPassword()));
+				else {
+					User user      = userRepository.findById(uniqueId);
+					Date date      = new Date();
+					String strDate = new SimpleDateFormat("dd/mm/yyyy hh:mm:ss").format(date);
+					
+					user.setNik(uProfileReq.getNik());
+					user.setUsername(uProfileReq.getUsername());
+					if (!Objects.isNull(uProfileReq.getPassword())) {
+						user.setPassword(encoder.encode(uProfileReq.getPassword()));
+					}
+					user.setUpdatedAt(strDate);
+					userRepository.save(user);
 				}
-				user.setUpdatedAt(strDate);
-				userRepository.save(user);
 			}
-				
-			responseData = new ResponseDto<>(
+        }         
+        catch (Exception e) {
+			code = 500;
+			msg  = e.getMessage();
+        }
+
+		return ResponseEntity
+			.status(code)
+			.body(new ResponseDto<>(
 				code,
 				(code < 300) ? "success" : "failed",
 				msg
-			);
-
-			return ResponseEntity
-				.status(code)
-				.body(responseData);
-        } 
-        catch (Exception e) {
-            ResponseDto<?> responseData = new ResponseDto<>(
-				500,
-				"failed",
-				e.getMessage()
-			);
-
-            return ResponseEntity
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.body(responseData);
-        }
+			));
 	}
 
 	@DeleteMapping("/delete/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable String id) {
+		int code   = 201;
+		String msg = "user dengan id {"+id+"} berhasil dihapus";
+
         try {
             if (userRepository.existsById(id) == false) {
-				ResponseDto<?> responseData = new ResponseDto<>(
-					400,
-					"failed",
-					"user dengan id {"+id+"} tidak ditemukan"
-				);
-
-				return ResponseEntity
-					.status(HttpStatus.BAD_REQUEST)
-					.body(responseData);
+				code = 400;
+				msg  = "user dengan id {"+id+"} tidak ditemukan";
 			}
-
-            userRepository.deleteUserById(id);;
-            
-            ResponseDto<?> responseData = new ResponseDto<>(
-				200,
-				"success",
-				"user dengan id {"+id+"} berhasil dihapus"
-			);
-
-            return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(responseData);
-        } 
+			else {
+				userRepository.deleteUserById(id);;
+			}
+        }         
         catch (Exception e) {
-            ResponseDto<?> responseData = new ResponseDto<>(
-				500,
-				"failed",
-				e.getMessage()
-			);
-
-            return ResponseEntity
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.body(responseData);
+			code = 500;
+			msg  = e.getMessage();
         }
+
+		return ResponseEntity
+			.status(code)
+			.body(new ResponseDto<>(
+				code,
+				(code < 300) ? "success" : "failed",
+				msg
+			));
     }
 
 	@GetMapping
